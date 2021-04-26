@@ -179,19 +179,19 @@ function parseExpression(revToks: Token[], expectedEnd: TokenType): string {
     }
 
     // Possible end of expression. expectedEnd can be:
-		// END,
-		// RParen for expressions between parentheses,
-		// Comma for function arguments, in which case we also accept RParen,
-		// RBracket for array elements,  in which case we also accept Comma.
-		// Note that we don't consume the end token.
+    // END,
+    // RParen for expressions between parentheses,
+    // Comma for function arguments, in which case we also accept RParen,
+    // RBracket for array elements,  in which case we also accept Comma.
+    // Note that we don't consume the end token.
     const type = revToks[revToks.length-1].type;
-		if (
+    if (
       type === expectedEnd ||
       expectedEnd === TokenType.Comma    && type === TokenType.RParen ||
       expectedEnd === TokenType.RBracket && type === TokenType.Comma
     ) {
-			return js;
-		}
+      return js;
+    }
 
     // Operator.
     tok = revToks.pop() as Token;
