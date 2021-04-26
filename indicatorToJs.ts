@@ -174,6 +174,10 @@ function parseExpression(revToks: Token[], expectedEnd: TokenType): string {
         js += '(' + parseExpression(revToks, TokenType.RParen) + ')';
         consume(revToks, TokenType.RParen);
         break;
+      case TokenType.LBracket:
+        js += '[' + parseList(revToks, TokenType.RBracket) + ']';
+        consume(revToks, TokenType.RBracket);
+        break;
       default:
         throw unexpectedTokenError(tok);
     }
