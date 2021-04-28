@@ -23,6 +23,7 @@ enum TokenType {
   String,
   Number,
   Indent,
+  Name, // The name of a field: an identifier starting with $
 }
 
 interface Token {
@@ -36,6 +37,7 @@ function firstToken(s: string): Token {
   if (s.length === 0) {
     return {type: TokenType.END, text: ''};
   }
+  let m: RegExpMatchArray | null;
   const c = s.charAt(0);
   switch (c) {
     case '(':
@@ -73,21 +75,27 @@ function firstToken(s: string): Token {
         return {type: TokenType.NotEqual, text: '!='};
       }
       return {type: TokenType.Not, text: '!'};
+    case '$':
+      m = s.match(/^\$[a-zA-Z_]\w*/);
+      if (m === null) {
+        throw new Error('invalid field name in: ' + s);
+      }
+      return {type: TokenType.Name, text: m[0]};
     case '"':
-      const m = s.match(/^"(\\\\|\\"|[^"])*"/);
+      m = s.match(/^"(\\\\|\\"|[^"])*"/);
       if (m === null) {
         throw new Error('unterminated string literal in: ' + s);
       }
       return {type: TokenType.String, text: m[0]};
   }
   if (c >= '0' && c <= '9') {
-    const m = s.match(/^\d+(\.\d+)?([eE][\+\-]?\d+)?/);
+    m = s.match(/^\d+(\.\d+)?([eE][\+\-]?\d+)?/);
     if (m === null) {
       throw new Error('impossible');
     }
     return {type: TokenType.Number, text: m[0]};
   }
-  const m = s.match(/^[a-zA-Z_]\w*/);
+  m = s.match(/^[a-zA-Z_]\w*/);
   if (m !== null) {
     return {type: TokenType.Indent, text: m[0]};
   }
@@ -155,6 +163,9 @@ function parseExpression(revToks: Token[], expectedEnd: TokenType): string {
           js += tok.text;
         }
         break;
+      case TokenType.Name:
+        js += '**' + tok.text.slice(1) + '**';
+        break;
       case TokenType.String:
       case TokenType.Number:
         js += tok.text;
@@ -200,25 +211,25 @@ function parseExpression(revToks: Token[], expectedEnd: TokenType): string {
     // Operator.
     tok = revToks.pop() as Token;
     if (tok.type >= TokenType.Plus && tok.type <= TokenType.GreaterOrEq) {
-      js += tok.text;
+      js += ' ' + tok.text + ' ';
       continue;
     }
     switch (tok.type) {
       case TokenType.Indent:
         if (tok.text === 'AND') {
-          js += '&&';
+          js += ' && ';
           break;
         }
         if (tok.text === 'OR') {
-          js += '||';
+          js += ' || ';
           break;
         }
         throw unexpectedTokenError(tok);
       case TokenType.Equal:
-        js += '===';
+        js += ' === ';
         break;
       case TokenType.NotEqual:
-        js += '!==';
+        js += ' !== ';
         break;
       default:
         throw unexpectedTokenError(tok);
@@ -258,7 +269,7 @@ function parseList(revToks: Token[], expectedEnd: TokenType): string {
       return js;
     }
     consume(revToks, TokenType.Comma);
-    js += ',';
+    js += ', ';
   }
 }
 
