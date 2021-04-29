@@ -237,19 +237,6 @@ function parseExpression(revToks: Token[], expectedEnd: TokenType): string {
   }
 }
 
-// parseFunctionCall parses a function call expression.
-// The function name has already been scanned.
-function parseFunctionCall(name: string, revToks: Token[]): string {
-  let js = func2jsfunc[name];
-  if (js == null) {
-    throw new Error('Unsupported function: ' + name);
-  }
-  consume(revToks, TokenType.LParen);
-  js += '(' + parseList(revToks, TokenType.Comma) + ')';
-  consume(revToks, TokenType.RParen);
-  return js;
-}
-
 // parseList parses a comma-separated list of expressions.
 // expectedEnd is Comma for function arguments and RBracket for arrays,
 // according to the behavior of parseExpression.
@@ -273,10 +260,26 @@ function parseList(revToks: Token[], expectedEnd: TokenType): string {
   }
 }
 
-interface FunctionMap {
-  [name: string]: string;
+// parseFunctionCall parses a function call expression.
+// The function name has already been scanned.
+function parseFunctionCall(name: string, revToks: Token[]): string {
+  let js: string;
+  switch (name) {
+    case 'INCLUDES':
+      consume(revToks, TokenType.LParen);
+      js = '(' + parseExpression(revToks, TokenType.Comma) + ').includes(';
+      consume(revToks, TokenType.Comma);
+      js += parseExpression(revToks, TokenType.Comma) + ')';
+      consume(revToks, TokenType.RParen);
+      return js;
+    case 'PERCENT':
+      consume(revToks, TokenType.LParen);
+      js = 'getTrend(' + parseExpression(revToks, TokenType.Comma) + ', ';
+      consume(revToks, TokenType.Comma);
+      js += parseExpression(revToks, TokenType.Comma) + ')';
+      consume(revToks, TokenType.RParen);
+      return js;
+    default:
+      throw new Error('unsupported function: ' + name);
+  }
 }
-
-const func2jsfunc: FunctionMap = {
-  SUM: 'sumConditionalOccurrences'
-};
