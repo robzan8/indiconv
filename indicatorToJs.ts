@@ -122,18 +122,35 @@ function indicatorToJs(formula: string): string {
   return parseExpression(tokenize(formula).reverse(), TokenType.END);
 }
 
-function unexpectedTokenError(t: Token): Error {
-  if (t.type === TokenType.END) {
+function unexpectedTokenError(tok: Token, rest: Token[]): Error {
+  if (tok.type === TokenType.END) {
     return new Error('unexpected end of token stream');
   }
-  return new Error('unexpected token: ' + t.text);
+  rest.push(tok);
+  return new Error('unexpected token at the start of: ' + printTokens(rest));
 }
 
-function consume(revToks: Token[], expectedType: TokenType) {
+function printTokens(revToks: Token[]) {
+  let s = '';
+  while (revToks.length > 0) {
+    const tok = revToks.pop() as Token;
+    if (tok.type >= TokenType.Plus && tok.type <= TokenType.NotEqual) { // binary operators
+      s += ' ' + tok.text + ' ';
+    } else if (tok.type === TokenType.Comma) {
+      s += ', ';
+    } else {
+      s += tok.text;
+    }
+  }
+  return s;
+}
+
+function consume(revToks: Token[], expectedType: TokenType): Token {
   const tok = revToks.pop() as Token;
   if (tok.type !== expectedType) {
-    throw unexpectedTokenError(tok);
+    throw unexpectedTokenError(tok, revToks);
   }
+  return tok
 }
 
 // parseExpression parses the first expression in revToks
@@ -174,7 +191,7 @@ function parseExpression(revToks: Token[], expectedEnd: TokenType): string {
       case TokenType.Minus:
         next = revToks[revToks.length-1];
         if (next.type === TokenType.Plus || next.type === TokenType.Minus) {
-          throw unexpectedTokenError(next);
+          throw unexpectedTokenError(revToks.pop() as Token, revToks);
         }
         js += tok.text;
         continue;
@@ -190,7 +207,7 @@ function parseExpression(revToks: Token[], expectedEnd: TokenType): string {
         consume(revToks, TokenType.RBracket);
         break;
       default:
-        throw unexpectedTokenError(tok);
+        throw unexpectedTokenError(tok, revToks);
     }
 
     // Possible end of expression. expectedEnd can be:
@@ -224,7 +241,7 @@ function parseExpression(revToks: Token[], expectedEnd: TokenType): string {
           js += ' || ';
           break;
         }
-        throw unexpectedTokenError(tok);
+        throw unexpectedTokenError(tok, revToks);
       case TokenType.Equal:
         js += ' === ';
         break;
@@ -232,7 +249,7 @@ function parseExpression(revToks: Token[], expectedEnd: TokenType): string {
         js += ' !== ';
         break;
       default:
-        throw unexpectedTokenError(tok);
+        throw unexpectedTokenError(tok, revToks);
     }
   }
 }
