@@ -278,6 +278,8 @@ function parseList(revToks: Token[], expectedEnd: TokenType): string {
 }
 
 // parseFunctionCall parses a function call expression.
+// The list of supported functions is documented here:
+// https://docs.google.com/document/d/1O55G_7En1NvYcdiw8-Ngo_lxXYwiaQ4JviifF4E-dTA/
 // The function name has already been scanned.
 function parseFunctionCall(name: string, revToks: Token[]): string {
   let js: string;
@@ -296,7 +298,25 @@ function parseFunctionCall(name: string, revToks: Token[]): string {
       js += parseExpression(revToks, TokenType.Comma) + ')';
       consume(revToks, TokenType.RParen);
       return js;
+    case 'COUNTFORMS':
+      return parseCountForms(revToks);
     default:
       throw new Error('unsupported function: ' + name);
+  }
+}
+
+function parseCountForms(revToks: Token[]): string {
+  consume(revToks, TokenType.LParen);
+  const formName = consume(revToks, TokenType.Indent).text;
+  const tok = revToks.pop() as Token;
+  switch (tok.type) {
+    case TokenType.RParen:
+      return 'countOccurrences(' + formName + ', [])';
+    case TokenType.Comma:
+      const condition = parseExpression(revToks, TokenType.Comma);
+      consume(revToks, TokenType.RParen);
+      return 'countConditionalOccurrences(' + formName + ', [], `' + condition + '`)';
+    default:
+      throw unexpectedTokenError(tok, revToks);
   }
 }
