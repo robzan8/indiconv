@@ -300,6 +300,8 @@ function parseFunctionCall(name: string, revToks: Token[]): string {
       return js;
     case 'COUNTFORMS':
       return parseCountForms(revToks);
+    case 'COUNTFORMS_UNIQUE':
+      return parseCountFormsUnique(revToks);
     default:
       throw new Error('unsupported function: ' + name);
   }
@@ -311,11 +313,29 @@ function parseCountForms(revToks: Token[]): string {
   const tok = revToks.pop() as Token;
   switch (tok.type) {
     case TokenType.RParen:
-      return 'countOccurrences(' + formName + ', [])';
+      return `countOccurrences(${formName})`;
     case TokenType.Comma:
       const condition = parseExpression(revToks, TokenType.Comma);
       consume(revToks, TokenType.RParen);
-      return 'countConditionalOccurrences(' + formName + ', [], `' + condition + '`)';
+      return `countConditionalOccurrences(${formName}, \`${condition}\`)`;
+    default:
+      throw unexpectedTokenError(tok, revToks);
+  }
+}
+
+function parseCountFormsUnique(revToks: Token[]): string {
+  consume(revToks, TokenType.LParen);
+  const formName = consume(revToks, TokenType.Indent).text;
+  consume(revToks, TokenType.Comma);
+  const fieldName = consume(revToks, TokenType.Name).text.slice(1);
+  const tok = revToks.pop() as Token;
+  switch (tok.type) {
+    case TokenType.RParen:
+      return `countDistinctOccurrences(${formName}, '${fieldName}')`;
+    case TokenType.Comma:
+      const condition = parseExpression(revToks, TokenType.Comma);
+      consume(revToks, TokenType.RParen);
+      return `countDistinctConditionalOccurrences(${formName}, '${fieldName}', \`${condition}\`)`;
     default:
       throw unexpectedTokenError(tok, revToks);
   }
