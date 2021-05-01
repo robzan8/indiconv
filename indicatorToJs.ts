@@ -302,6 +302,8 @@ function parseFunctionCall(name: string, revToks: Token[]): string {
       return parseCountForms(revToks);
     case 'COUNTFORMS_UNIQUE':
       return parseCountFormsUnique(revToks);
+    case 'SUM':
+      return parseSum(revToks);
     default:
       throw new Error('unsupported function: ' + name);
   }
@@ -338,5 +340,43 @@ function parseCountFormsUnique(revToks: Token[]): string {
       return `countDistinctConditionalOccurrences(${formName}, '${fieldName}', \`${condition}\`)`;
     default:
       throw unexpectedTokenError(tok, revToks);
+  }
+}
+
+function parseSum(revToks: Token[]): string {
+  consume(revToks, TokenType.LParen);
+  const formName = consume(revToks, TokenType.Indent).text;
+  consume(revToks, TokenType.Comma);
+  const fieldList = parseNameList(revToks);
+  const tok = revToks.pop() as Token;
+  switch (tok.type) {
+    case TokenType.RParen:
+      return `sumOccurrences(${formName}, ${fieldList})`;
+    case TokenType.Comma:
+      const condition = parseExpression(revToks, TokenType.Comma);
+      consume(revToks, TokenType.RParen);
+      return `sumConditionalOccurrences(${formName}, ${fieldList}, \`${condition}\`)`;
+    default:
+      throw unexpectedTokenError(tok, revToks);
+  }
+}
+
+// parseNameList parses a list of names like [$foo, $bar] and returns "['foo', 'bar']".
+function parseNameList(revToks: Token[]): string {
+  consume(revToks, TokenType.LBracket);
+  let next = revToks[revToks.length - 1];
+  if (next.type === TokenType.RBracket) { // empty list
+    revToks.pop();
+    return '[]';
+  }
+  let js = '[';
+  while (true) {
+    js += '\'' + consume(revToks, TokenType.Name).text.slice(1) + '\'';
+    const tok = revToks.pop() as Token;
+    if (tok.type === TokenType.RBracket) {
+      return js + ']';
+    }
+    consume(revToks, TokenType.Comma);
+    js += ', ';
   }
 }
