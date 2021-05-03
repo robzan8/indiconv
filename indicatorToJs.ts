@@ -372,8 +372,9 @@ function parseNameList(revToks: Token[]): string {
   let js = '[';
   while (true) {
     js += '\'' + consume(revToks, TokenType.Name).text.slice(1) + '\'';
-    const tok = revToks.pop() as Token;
-    if (tok.type === TokenType.RBracket) {
+    next = revToks[revToks.length - 1];
+    if (next.type === TokenType.RBracket) {
+      revToks.pop();
       return js + ']';
     }
     consume(revToks, TokenType.Comma);
