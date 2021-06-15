@@ -187,7 +187,7 @@ function parseExpression(revToks: Token[], expectedEnd: TokenType): string {
         }
         break;
       case TokenType.Name:
-        js += '**' + tok.text.slice(1) + '**';
+        js += tok.text.slice(1);
         break;
       case TokenType.String:
       case TokenType.Number:
