@@ -87,6 +87,12 @@ function firstToken(s: string): Token {
         throw new Error('unterminated string literal in: ' + s);
       }
       return {type: TokenType.String, text: m[0]};
+    case '\'':
+      m = s.match(/^'(\\\\|\\'|[^'])*'/);
+      if (m === null) {
+        throw new Error('unterminated string literal in: ' + s);
+      }
+      return {type: TokenType.String, text: m[0]};
   }
   if (c >= '0' && c <= '9') {
     m = s.match(/^\d+(\.\d+)?([eE][\+\-]?\d+)?/);
