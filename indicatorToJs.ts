@@ -299,91 +299,35 @@ function parseFunctionCall(name: string, revToks: Token[]): string {
       return js;
     case 'PERCENT':
       consume(revToks, TokenType.LParen);
-      js = 'getTrend(' + parseExpression(revToks, TokenType.Comma) + ', ';
+      js = 'PERCENT(' + parseExpression(revToks, TokenType.Comma) + ', ';
       consume(revToks, TokenType.Comma);
       js += parseExpression(revToks, TokenType.Comma) + ')';
       consume(revToks, TokenType.RParen);
       return js;
     case 'COUNTFORMS':
-      return parseCountForms(revToks);
     case 'COUNTFORMS_UNIQUE':
-      return parseCountFormsUnique(revToks);
     case 'SUM':
-      return parseSum(revToks);
+    case 'MEAN':
+      return parseAggregationFunction(name, revToks);
     default:
       throw new Error('unsupported function: ' + name);
   }
 }
 
-function parseCountForms(revToks: Token[]): string {
+function parseAggregationFunction(name: string, revToks: Token[]): string {
   consume(revToks, TokenType.LParen);
-  const formName = consume(revToks, TokenType.Indent).text;
-  const tok = revToks.pop() as Token;
-  switch (tok.type) {
-    case TokenType.RParen:
-      return `countOccurrences(${formName})`;
-    case TokenType.Comma:
-      const condition = parseExpression(revToks, TokenType.Comma);
-      consume(revToks, TokenType.RParen);
-      return `countConditionalOccurrences(${formName}, \`${condition}\`)`;
-    default:
-      throw unexpectedTokenError(tok, revToks);
-  }
-}
-
-function parseCountFormsUnique(revToks: Token[]): string {
-  consume(revToks, TokenType.LParen);
-  const formName = consume(revToks, TokenType.Indent).text;
+  const form = parseExpression(revToks, TokenType.Comma);
   consume(revToks, TokenType.Comma);
-  const fieldName = consume(revToks, TokenType.Name).text.slice(1);
+  const fields = parseExpression(revToks, TokenType.Comma);
   const tok = revToks.pop() as Token;
   switch (tok.type) {
     case TokenType.RParen:
-      return `countDistinctOccurrences(${formName}, '${fieldName}')`;
+      return `${name}(${form}, \`${fields}\`)`;
     case TokenType.Comma:
       const condition = parseExpression(revToks, TokenType.Comma);
       consume(revToks, TokenType.RParen);
-      return `countDistinctConditionalOccurrences(${formName}, '${fieldName}', \`${condition}\`)`;
+      return `${name}(${form}, \`${fields}\`, \`${condition}\`)`;
     default:
       throw unexpectedTokenError(tok, revToks);
-  }
-}
-
-function parseSum(revToks: Token[]): string {
-  consume(revToks, TokenType.LParen);
-  const formName = consume(revToks, TokenType.Indent).text;
-  consume(revToks, TokenType.Comma);
-  const fieldList = parseNameList(revToks);
-  const tok = revToks.pop() as Token;
-  switch (tok.type) {
-    case TokenType.RParen:
-      return `sumOccurrences(${formName}, ${fieldList})`;
-    case TokenType.Comma:
-      const condition = parseExpression(revToks, TokenType.Comma);
-      consume(revToks, TokenType.RParen);
-      return `sumConditionalOccurrences(${formName}, ${fieldList}, \`${condition}\`)`;
-    default:
-      throw unexpectedTokenError(tok, revToks);
-  }
-}
-
-// parseNameList parses a list of names like [$foo, $bar] and returns "['foo', 'bar']".
-function parseNameList(revToks: Token[]): string {
-  consume(revToks, TokenType.LBracket);
-  let next = revToks[revToks.length - 1];
-  if (next.type === TokenType.RBracket) { // empty list
-    revToks.pop();
-    return '[]';
-  }
-  let js = '[';
-  while (true) {
-    js += '\'' + consume(revToks, TokenType.Name).text.slice(1) + '\'';
-    next = revToks[revToks.length - 1];
-    if (next.type === TokenType.RBracket) {
-      revToks.pop();
-      return js + ']';
-    }
-    consume(revToks, TokenType.Comma);
-    js += ', ';
   }
 }
