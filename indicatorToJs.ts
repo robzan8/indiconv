@@ -306,11 +306,28 @@ function parseFunctionCall(name: string, revToks: Token[]): string {
       return js;
     case 'COUNTFORMS':
     case 'COUNTFORMS_UNIQUE':
+      return parseCountForms(name, revToks);
     case 'SUM':
     case 'MEAN':
       return parseAggregationFunction(name, revToks);
     default:
       throw new Error('unsupported function: ' + name);
+  }
+}
+
+function parseCountForms(name: string, revToks: Token[]): string {
+  consume(revToks, TokenType.LParen);
+  const form = parseExpression(revToks, TokenType.Comma);
+  const tok = revToks.pop() as Token;
+  switch (tok.type) {
+    case TokenType.RParen:
+      return `${name}(${form})`;
+    case TokenType.Comma:
+      const condition = parseExpression(revToks, TokenType.Comma);
+      consume(revToks, TokenType.RParen);
+      return `${name}(${form}, \`${condition}\`)`;
+    default:
+      throw unexpectedTokenError(tok, revToks);
   }
 }
 
