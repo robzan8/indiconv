@@ -310,6 +310,8 @@ function parseFunctionCall(name: string, revToks: Token[]): string {
     case 'SUM':
     case 'MEAN':
       return parseAggregationFunction(name, revToks);
+    case 'REPEAT':
+      return parseRepeat(revToks);
     default:
       throw new Error('unsupported function: ' + name);
   }
@@ -347,4 +349,16 @@ function parseAggregationFunction(name: string, revToks: Token[]): string {
     default:
       throw unexpectedTokenError(tok, revToks);
   }
+}
+
+function parseRepeat(revToks: Token[]): string {
+  consume(revToks, TokenType.LParen);
+  const array = parseExpression(revToks, TokenType.Comma);
+  consume(revToks, TokenType.Comma);
+  const formula = parseExpression(revToks, TokenType.Comma);
+  consume(revToks, TokenType.RParen);
+  // The formula needs to be quoted,
+  // escaping internal quote characters where necessary:
+  const formulaString = JSON.stringify(formula);
+  return `REPEAT(${array}, ${formulaString})`;
 }
