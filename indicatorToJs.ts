@@ -1,4 +1,26 @@
-enum TokenType {
+/**
+ * @license
+ * Copyright (C) Gnucoop soc. coop.
+ *
+ * This file is part of the Advanced JSON forms (ajf).
+ *
+ * Advanced JSON forms (ajf) is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the License,
+ * or (at your option) any later version.
+ *
+ * Advanced JSON forms (ajf) is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with Advanced JSON forms (ajf).
+ * If not, see http://www.gnu.org/licenses/.
+ *
+ */
+
+const enum TokenType {
   END,
   LParen,
   RParen,
@@ -87,7 +109,7 @@ function firstToken(s: string): Token {
         throw new Error('unterminated string literal in: ' + s);
       }
       return {type: TokenType.String, text: m[0]};
-    case '\'':
+    case "'":
       m = s.match(/^'(\\\\|\\'|[^'])*'/);
       if (m === null) {
         throw new Error('unterminated string literal in: ' + s);
@@ -124,7 +146,7 @@ function tokenize(s: string): Token[] {
   }
 }
 
-function indicatorToJs(formula: string): string {
+export function indicatorToJs(formula: string): string {
   return parseExpression(tokenize(formula).reverse(), TokenType.END);
 }
 
@@ -140,7 +162,8 @@ function printTokens(revToks: Token[]) {
   let s = '';
   while (revToks.length > 0) {
     const tok = revToks.pop() as Token;
-    if (tok.type >= TokenType.Plus && tok.type <= TokenType.NotEqual) { // binary operators
+    if (tok.type >= TokenType.Plus && tok.type <= TokenType.NotEqual) {
+      // binary operators
       s += ' ' + tok.text + ' ';
     } else if (tok.type === TokenType.Comma) {
       s += ', ';
@@ -156,7 +179,7 @@ function consume(revToks: Token[], expectedType: TokenType): Token {
   if (tok.type !== expectedType) {
     throw unexpectedTokenError(tok, revToks);
   }
-  return tok
+  return tok;
 }
 
 // parseExpression parses the first expression in revToks
@@ -166,8 +189,10 @@ function consume(revToks: Token[], expectedType: TokenType): Token {
 // After the expression, the function expects to find the token expectedEnd.
 function parseExpression(revToks: Token[], expectedEnd: TokenType): string {
   if (
-    expectedEnd !== TokenType.END   && expectedEnd !== TokenType.RParen &&
-    expectedEnd !== TokenType.Comma && expectedEnd !== TokenType.RBracket
+    expectedEnd !== TokenType.END &&
+    expectedEnd !== TokenType.RParen &&
+    expectedEnd !== TokenType.Comma &&
+    expectedEnd !== TokenType.RBracket
   ) {
     throw new Error('invalid expectedEnd');
   }
@@ -179,7 +204,7 @@ function parseExpression(revToks: Token[], expectedEnd: TokenType): string {
     let next: Token;
     switch (tok.type) {
       case TokenType.Indent:
-        next = revToks[revToks.length-1];
+        next = revToks[revToks.length - 1];
         if (next.type === TokenType.LParen) {
           js += parseFunctionCall(tok.text, revToks);
         } else if (next.type === TokenType.LBracket) {
@@ -200,7 +225,7 @@ function parseExpression(revToks: Token[], expectedEnd: TokenType): string {
         break;
       case TokenType.Plus:
       case TokenType.Minus:
-        next = revToks[revToks.length-1];
+        next = revToks[revToks.length - 1];
         if (next.type === TokenType.Plus || next.type === TokenType.Minus) {
           throw unexpectedTokenError(revToks.pop() as Token, revToks);
         }
@@ -227,11 +252,11 @@ function parseExpression(revToks: Token[], expectedEnd: TokenType): string {
     // Comma for function arguments, in which case we also accept RParen,
     // RBracket for array elements,  in which case we also accept Comma.
     // Note that we don't consume the end token.
-    const type = revToks[revToks.length-1].type;
+    const type = revToks[revToks.length - 1].type;
     if (
       type === expectedEnd ||
-      expectedEnd === TokenType.Comma    && type === TokenType.RParen ||
-      expectedEnd === TokenType.RBracket && type === TokenType.Comma
+      (expectedEnd === TokenType.Comma && type === TokenType.RParen) ||
+      (expectedEnd === TokenType.RBracket && type === TokenType.Comma)
     ) {
       return js;
     }
@@ -273,7 +298,8 @@ function parseList(revToks: Token[], expectedEnd: TokenType): string {
     throw new Error('invalid expectedEnd');
   }
   let next = revToks[revToks.length - 1];
-  if (next.type === TokenType.RParen || next.type === TokenType.RBracket) { // empty list
+  if (next.type === TokenType.RParen || next.type === TokenType.RBracket) {
+    // empty list
     return '';
   }
   let js = '';
@@ -330,18 +356,6 @@ function parseFunctionCall(name: string, revToks: Token[]): string {
   }
 }
 
-// possibili signatures:
-// forms, fieldName // allvaluesof
-// forms, condition? // countforms
-// forms, fieldName, condition? // countforms_unique
-// forms, expression, condition? // sum, mean, max, median, mode
-// se fieldName lo vediamo come simple expression si semplifica tutto
-
-// da fare a mano:
-// percent, includes
-// last: forms, expression, date
-// repeat
-
 // Parses a function with parameters: form, expression, condition?
 function parseMathFunction(name: string, revToks: Token[]): string {
   consume(revToks, TokenType.LParen);
@@ -363,8 +377,11 @@ function parseMathFunction(name: string, revToks: Token[]): string {
 
 // Parses a function with parameters: form, fieldName?, condition?
 function parseFieldFunction(
-    name: string, revToks: Token[], hasField: boolean, canHaveCond: boolean
-  ): string {
+  name: string,
+  revToks: Token[],
+  hasField: boolean,
+  canHaveCond: boolean,
+): string {
   consume(revToks, TokenType.LParen);
   let js = name + '(' + parseExpression(revToks, TokenType.Comma);
   if (hasField) {
